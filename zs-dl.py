@@ -42,7 +42,7 @@ def parse_prefs():
     parser.add_argument(
         '-u', '--urls',
         nargs='+', required=True,
-        help='URLs separated by a space or an abs_path path to a txt file.'
+        help='URLs separated by a space or an abs path to a txt file.'
     )
     parser.add_argument(
         '-o', '--output-path',
@@ -135,9 +135,9 @@ def get_file(ref, url):
     return r, length
 
 
-def download(ref, url, fname):
+def download(ref, url, fname, odir):
     print(fname)
-    abs_path = os.path.join(cfg.output_path, fname)
+    abs_path = os.path.join(odir, fname)
     if os.path.isfile(abs_path):
         if cfg.overwrite:
             print("File already exists locally. Will overwrite.")
@@ -155,10 +155,11 @@ def download(ref, url, fname):
                     bar.update(len(chunk))
 
 
-def main(url):
+def main(url, odir=os.path.join(os.getcwd(), 'ZS-DL downloads')):
     server, zippy_id = check_url(url)
     file_url, fname = extract(url, server, zippy_id)
-    download(url, file_url, fname)
+    download(url, file_url, fname, odir)
+    return fname
 
 
 if __name__ == '__main__':
