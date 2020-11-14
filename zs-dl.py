@@ -22,13 +22,25 @@ def read_txt(abs_path):
         return [u.strip() for u in f.readlines()]
 
 
+def create_session():
+    s = requests.Session()
+    s.headers.update({
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome"
+                      "/75.0.3770.100 Safari/537.36"
+    })
+    if 'cfg' in locals() and cfg.proxy:
+        s.proxies.update({'https': 'https://' + cfg.proxy})
+    return s
+
+
 def decrypt_dlc(abs_path):
     # Thank you, dcrypt owner(s).
     url = "http://dcrypt.it/decrypt/paste"
-    r = s.post(url, data={
+    r = create_session().post(url, data={
         'content': open(abs_path)
     }
-               )
+                              )
     r.raise_for_status()
     j = json.loads(r.text)
     if not j.get('success'):
@@ -37,7 +49,13 @@ def decrypt_dlc(abs_path):
 
 
 def parse_prefs():
-    out_path = os.path.join(os.getcwd(), 'ZS-DL downloads')
+    try:
+        if hasattr(sys, 'frozen'):
+            os.chdir(os.path.dirname(sys.executable))
+        else:
+            os.chdir(os.path.dirname(__file__))
+    except OSError:
+        pass
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-u', '--urls',
@@ -46,7 +64,7 @@ def parse_prefs():
     )
     parser.add_argument(
         '-o', '--output-path',
-        default=out_path,
+        default=os.getcwd(),
         help='Abs output directory.'
     )
     parser.add_argument(
@@ -73,18 +91,9 @@ def parse_prefs():
     return args
 
 
-def dir_setup():
-    if not os.path.isdir(cfg.output_path):
-        os.makedirs(cfg.output_path)
-
-
 def err(txt):
     print(txt)
     traceback.print_exc()
-
-
-def set_proxy():
-    s.proxies.update({'https': 'https://' + cfg.proxy})
 
 
 def check_url(url):
@@ -103,7 +112,7 @@ def extract(url, server, zippy_id):
         r'document.getElementById\(\'dlbutton\'\).href = "/d/[a-zA-Z\d]{8}/"\+\(Math.pow\(a, 3\)\+b\)\+"\/(.+)";'
     )
     for _ in range(3):
-        r = s.get(url)
+        r = create_session().get(url)
         if r.status_code != 500:
             break
         time.sleep(1)
@@ -123,6 +132,7 @@ def extract(url, server, zippy_id):
 
 
 def get_file(ref, url):
+    s = create_session()
     s.headers.update({
         'Range': "bytes=0-",
         'Referer': ref
@@ -139,7 +149,7 @@ def download(ref, url, fname, odir):
     print(fname)
     abs_path = os.path.join(odir, fname)
     if os.path.isfile(abs_path):
-        if cfg.overwrite:
+        if 'cfg' in locals() and cfg.overwrite:
             print("File already exists locally. Will overwrite.")
         else:
             print("File already exists locally.")
@@ -155,7 +165,7 @@ def download(ref, url, fname, odir):
                     bar.update(len(chunk))
 
 
-def main(url, odir=os.path.join(os.getcwd(), 'ZS-DL downloads')):
+def main(url, odir=os.getcwd()):
     server, zippy_id = check_url(url)
     file_url, fname = extract(url, server, zippy_id)
     download(url, file_url, fname, odir)
@@ -163,21 +173,6 @@ def main(url, odir=os.path.join(os.getcwd(), 'ZS-DL downloads')):
 
 
 if __name__ == '__main__':
-    try:
-        if hasattr(sys, 'frozen'):
-            os.chdir(os.path.dirname(sys.executable))
-        else:
-            os.chdir(os.path.dirname(__file__))
-    except OSError:
-        pass
-
-    s = requests.Session()
-    s.headers.update({
-        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome"
-                      "/75.0.3770.100 Safari/537.36"
-    })
-
     print("""
      _____ _____     ____  __
     |__   |   __|___|    \|  |
@@ -185,9 +180,6 @@ if __name__ == '__main__':
     |_____|_____|   |____/|_____|		 
     """)
     cfg = parse_prefs()
-    dir_setup()
-    if cfg.proxy:
-        set_proxy()
     total = len(cfg.urls)
     for num, zippy_url in enumerate(cfg.urls, 1):
         print("\nURL {} of {}:".format(num, total))
