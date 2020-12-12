@@ -64,7 +64,7 @@ def parse_prefs():
     )
     parser.add_argument(
         '-o', '--output-path',
-        default=os.getcwd(),
+        default='ZS-DL downloads',
         help='Abs output directory.'
     )
     parser.add_argument(
@@ -106,10 +106,8 @@ def check_url(url):
 
 def extract(url, server, zippy_id):
     regex = (
-        r'var a = (\d+);\s+'
-        r'document.getElementById\(\'dlbutton\'\).omg = "asdasd".substr\(0, 3\);\s+'
-        r'var b = document.getElementById\(\'dlbutton\'\).omg.length;\s+'
-        r'document.getElementById\(\'dlbutton\'\).href = "/d/[a-zA-Z\d]{8}/"\+\(Math.pow\(a, 3\)\+b\)\+"\/(.+)";'
+        r'document.getElementById\(\'dlbutton\'\).href = "/d/[a-zA-Z\d]{8}/" '
+        r'\+ \((\d+) % (\d+) \+ (\d+) % (\d+)\) \+ "\/(.+)";'
     )
     for _ in range(3):
         r = create_session().get(url)
@@ -121,14 +119,16 @@ def extract(url, server, zippy_id):
     if not meta:
         raise RuntimeError('Failed to get file URL. File down or pattern changed.')
     num_1 = int(meta.group(1))
-    final_num = pow(num_1, 3) + 3
-    enc_fname = meta.group(2)
+    num_2 = int(meta.group(2))
+    num_3 = int(meta.group(3))
+    num_4 = int(meta.group(4))
+    final_num = num_1 % num_2 + num_3 % num_4
+    enc_fname = meta.group(5)
     file_url = "https://www{}.zippyshare.com/d/{}/{}/{}".format(server,
                                                                 zippy_id,
                                                                 final_num,
                                                                 enc_fname)
-    fname = unquote(enc_fname)
-    return file_url, fname
+    return file_url, unquote(enc_fname)
 
 
 def get_file(ref, url):
