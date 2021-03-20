@@ -122,7 +122,7 @@ def extract(url, server, zippy_id):
         raise RuntimeError('Failed to get file URL. File down or pattern changed.')
     num_1 = int(meta.group(1))
     num_2 = int(meta.group(2))
-    final_num = math.ceil(num_1/3) + num_1 % num_2
+    final_num = math.floor(num_1/3) + num_1 % num_2
     enc_fname = meta.group(3)
     file_url = "https://www{}.zippyshare.com/d/{}/{}/{}".format(server,
                                                                 zippy_id,
