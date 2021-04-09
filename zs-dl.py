@@ -7,7 +7,6 @@ import json
 import time
 import argparse
 import traceback
-import math
 
 try:
     from urllib.parse import unquote
@@ -107,9 +106,7 @@ def check_url(url):
 
 def extract(url, server, zippy_id):
     regex = (
-        r'var a = ([0-9]{6});\s+var b = ([0-9]{6});[\s\S]+document.getElementById'
-        r'\(\'dlbutton\'\).href = \"/d/[a-zA-Z\d]{8}/\"\+\(a \+ [0-9]{6}%b\)\+'
-        r'\"\/(.+)\";'
+        r'\/d\/[A-Z|a-z|0-9]+\/\" ?\+ ?\(([0-9]+) % 51245 \+ ([0-9]+) % 913\) \+ \"/(.+)\";'
     )
     for _ in range(3):
         r = create_session().get(url)
@@ -122,7 +119,7 @@ def extract(url, server, zippy_id):
         raise RuntimeError('Failed to get file URL. File down or pattern changed.')
     num_1 = int(meta.group(1))
     num_2 = int(meta.group(2))
-    final_num = math.floor(num_1/3) + num_1 % num_2
+    final_num = num_1 % 51245 + num_2 % 913
     enc_fname = meta.group(3)
     file_url = "https://www{}.zippyshare.com/d/{}/{}/{}".format(server,
                                                                 zippy_id,
